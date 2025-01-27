@@ -8,19 +8,20 @@ class AppServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
+     *
+     * @return void
      */
     public function register()
     {
-        $this->app->bind(
-            \App\Providers\FileProviderInterface::class,
-            \App\Providers\FileProvider::class
-        );
+        //
     }
 
     /**
      * Bootstrap any application services.
+     *
+     * @return void
      */
-    public function boot(): void
+    public function boot()
     {
         //
     }

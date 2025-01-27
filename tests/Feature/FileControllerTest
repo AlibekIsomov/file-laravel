@@ -1,0 +1,46 @@
+<?php
+
+namespace Tests\Feature\Controllers;
+
+use Tests\TestCase;
+use App\Services\FileService;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
+
+class FileControllerTest extends TestCase
+{
+    protected $fileService;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->fileService = Mockery::mock(FileService::class);
+        $this->app->instance(FileService::class, $this->fileService);
+    }
+
+    public function test_put_object_uploads_file_successfully()
+    {
+        $file = UploadedFile::fake()->create('test.pdf', 100);
+        
+        $this->fileService
+            ->shouldReceive('uploadFile')
+            ->once()
+            ->andReturn('allowed/path1/test.pdf');
+
+        $response = $this->postJson('/api/files', [
+            'path' => 'allowed/path1',
+            'file' => $file,
+            'fileName' => 'test'
+        ]);
+
+        $response->assertStatus(201)
+                ->assertJson(['path' => 'allowed/path1/test.pdf']);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+}

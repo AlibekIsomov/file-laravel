@@ -2,17 +2,15 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Storage;
 
-class FileProvider implements FileProviderInterface
-{
-    public function putObject($tempPath, $path)
-    {
-        return Storage::move($tempPath, $path);
-    }
+use Illuminate\Support\ServiceProvider;
+use App\Repositories\FileRepositoryInterface;
+use App\Repositories\FileRepository;
 
-    public function getObject($filePath)
+class FileProvider extends ServiceProvider
+{   
+    public function register()
     {
-        return Storage::get($filePath);
+        $this->app->bind(FileRepositoryInterface::class, FileRepository::class);
     }
 }

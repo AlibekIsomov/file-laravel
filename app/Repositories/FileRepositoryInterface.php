@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Repositories;
 
-use App\Models\File;
+use Illuminate\Http\UploadedFile;
 
 interface FileRepositoryInterface
 {
-    public function save($tempPath, $path);
-    public function get($filePath);
+    public function putObject(string $path, UploadedFile $file, string $fileName): string;
+    public function getObject(string $path): string;
 }

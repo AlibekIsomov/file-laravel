@@ -25,13 +25,13 @@ class FileService
 
         $tempPath = $file->storeAs('temp', $fileName);
 
-        $this->fileRepository->save($tempPath, $path);
+        $this->fileRepository->putObject($path, $file, $fileName);
 
         return $tempPath;
     }
 
     public function getFile($filePath)
     {
-        return $this->fileRepository->get($filePath);
+        return $this->fileRepository->getObject($filePath);
     }
 }
