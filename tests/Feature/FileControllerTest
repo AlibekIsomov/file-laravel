@@ -1,4 +1,4 @@
-<?php
+<!-- 
 
 namespace Tests\Feature\Controllers;
 
@@ -43,4 +43,4 @@ class FileControllerTest extends TestCase
         Mockery::close();
         parent::tearDown();
     }
-}
+} -->

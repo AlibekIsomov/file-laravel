@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Repositories\FileRepositoryInterface;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class FileService
@@ -13,8 +14,12 @@ class FileService
         $this->fileRepository = $fileRepository;
     }
 
-    public function uploadFile($path, $file, $fileName)
+    public function uploadFile(array $allowedPaths, string $path, UploadedFile $file, string $fileName): string
     {
+        if (!in_array($path, $allowedPaths)) {
+            throw new \Exception('Invalid path');
+        }
+
         if ($file->getSize() > 1048576) {
             throw new \Exception('File size exceeds the limit');
         }
@@ -23,11 +28,10 @@ class FileService
             throw new \Exception('File name contains invalid characters');
         }
 
-        $tempPath = $file->storeAs('temp', $fileName);
+        $fullPath = "uploads/{$path}/{$fileName}";
+        Storage::putFileAs('public', $file, $fullPath);
 
-        $this->fileRepository->putObject($path, $file, $fileName);
-
-        return $tempPath;
+        return $fullPath;
     }
 
     public function getFile($filePath)

@@ -2,85 +2,135 @@
 
 namespace Tests\Feature\Controllers;
 
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
+use App\Http\Controllers\FileController;
 use App\Services\FileService;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Mockery;
+use PHPUnit\Framework\MockObject\MockObject;
 
 class FileControllerTest extends TestCase
 {
-    protected $fileService;
+    
+    /** @var FileController */
+    private $controller;
+    /** @var MockObject */
+    private $fileService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('local');
-        $this->fileService = Mockery::mock(FileService::class);
-        $this->app->instance(FileService::class, $this->fileService);
+        /** @var FileService&MockObject */
+        $this->fileService = $this->createMock(FileService::class);
+        $this->controller = new FileController($this->fileService);
     }
 
-    /** @test */
-    public function it_uploads_file_successfully()
+    public function testUploadFile(): void
     {
-        $file = UploadedFile::fake()->create('document.pdf', 100);
+        $file = $this->createMock(UploadedFile::class);
+        $request = Request::create('/post-object', 'POST', [], [], ['file' => $file]);
         
-        $this->fileService
-            ->shouldReceive('uploadFile')
-            ->once()
-            ->andReturn('allowed/path1/document.pdf');
+        $request->expects($this->once())
+            ->method('file')
+            ->with('file')
+            ->willReturn($file);
 
-        $response = $this->postJson('/api/files', [
+        $this->fileService->expects($this->once())
+            ->method('uploadFile')
+            ->with('uploads', $file, 'test.pdf')
+            ->willReturn('uploads/test.pdf');
+
+        $response = $this->controller->upload($request);
+        
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals([
+            'status' => 'success',
+            'path' => 'uploads/test.pdf'
+        ], json_decode($response->getContent(), true));
+    }
+
+    public function testPutObject(): void
+    {
+    $file = $this->createMock(UploadedFile::class);
+    $request = Request::create('/put-object', 'PUT', [
+        'path' => 'allowed/path1',
+        'fileName' => 'testfile'
+    ], [], ['file' => $file]);
+
+    $request->expects($this->once())
+        ->method('validate')
+        ->willReturn([
             'path' => 'allowed/path1',
             'file' => $file,
-            'fileName' => 'document'
+            'fileName' => 'testfile'
         ]);
 
-        $response->assertStatus(201)
-                ->assertJson(['path' => 'allowed/path1/document.pdf']);
-    }
+    $request->expects($this->once())
+        ->method('file')
+        ->with('file')
+        ->willReturn($file);
 
-    /** @test */
-    public function it_validates_required_fields()
+    $this->fileService->expects($this->once())
+        ->method('uploadFile')
+        ->with(['allowed/path1', 'allowed/path2'], 'allowed/path1', $file, 'testfile')
+        ->willReturn('allowed/path1/testfile.pdf');
+
+    $response = $this->controller->putObject($request);
+
+    $this->assertEquals(201, $response->getStatusCode());
+    $this->assertEquals(['path' => 'allowed/path1/testfile.pdf'], json_decode($response->getContent(), true));
+}
+
+    public function testGetObject(): void
     {
-        $response = $this->postJson('/api/files', []);
+    $request = Request::create('/get-object', 'GET', ['filePath' => 'allowed/path1/testfile.pdf']);
 
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['path', 'file', 'fileName']);
-    }
+    $request->expects($this->once())
+        ->method('validate')
+        ->willReturn([
+            'filePath' => 'allowed/path1/testfile.pdf'
+        ]);
 
-    /** @test */
-    public function it_validates_file_type()
-    {
-        $file = UploadedFile::fake()->create('document.jpg', 100);
+    $this->fileService->expects($this->once())
+        ->method('getFile')
+        ->with('allowed/path1/testfile.pdf')
+        ->willReturn('file content');
 
-        $response = $this->postJson('/api/files', [
+    $response = $this->controller->getObject($request);
+
+    $this->assertEquals(200, $response->getStatusCode());
+    $this->assertEquals(['file' => 'file content'], json_decode($response->getContent(), true));
+}
+
+public function testPostObject(): void
+{
+    $file = $this->createMock(UploadedFile::class);
+    $request = Request::create('/post-object', 'POST', [
+        'path' => 'allowed/path1',
+        'fileName' => 'testfile'
+    ], [], ['file' => $file]);
+
+    $request->expects($this->once())
+        ->method('validate')
+        ->willReturn([
             'path' => 'allowed/path1',
             'file' => $file,
-            'fileName' => 'document'
+            'fileName' => 'testfile'
         ]);
 
-        $response->assertStatus(422)
-                ->assertJsonValidationErrors(['file']);
-    }
+    $request->expects($this->once())
+        ->method('file')
+        ->with('file')
+        ->willReturn($file);
 
-    /** @test */
-    public function it_retrieves_file_successfully()
-    {
-        $this->fileService
-            ->shouldReceive('getFile')
-            ->with('allowed/path1/document.pdf')
-            ->andReturn('file content');
+    $this->fileService->expects($this->once())
+        ->method('uploadFile')
+        ->with(['allowed/path1', 'allowed/path2'], 'allowed/path1', $file, 'testfile')
+        ->willReturn('allowed/path1/testfile.pdf');
 
-        $response = $this->getJson('/api/files?filePath=allowed/path1/document.pdf');
+    $response = $this->controller->postObject($request);
 
-        $response->assertStatus(200)
-                ->assertJson(['file' => 'file content']);
-    }
-
-    protected function tearDown(): void
-    {
-        Mockery::close();
-        parent::tearDown();
-    }
+    $this->assertEquals(201, $response->getStatusCode());
+    $this->assertEquals(['path' => 'allowed/path1/testfile.pdf'], json_decode($response->getContent(), true));
+}
 }

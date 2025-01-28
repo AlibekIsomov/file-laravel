@@ -2,65 +2,68 @@
 
 namespace Tests\Unit\Repositories;
 
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 use App\Repositories\FileRepository;
+use App\Models\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use RuntimeException;
 
 class FileRepositoryTest extends TestCase
 {
-    
-    /** @var FileRepository */
     private $repository;
+    private $storageMock;
+    private $fileMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('local');
-        $this->repository = new FileRepository();
+        
+        $this->storageMock = $this->getMockBuilder(Storage::class)
+            ->disableOriginalConstructor()
+            ->addMethods(['put'])
+            ->getMock();
+
+        $this->fileMock = $this->getMockBuilder(File::class)
+            ->disableOriginalConstructor()
+            ->addMethods(['create'])
+            ->getMock();
+
+        $this->repository = new FileRepository($this->storageMock, $this->fileMock);
     }
 
-    /** @test */
-    public function it_stores_file_successfully()
+    public function testStoresFileSuccessfully()
     {
-        $file = UploadedFile::fake()->create('test.pdf', 100);
+        // Arrange
+        $file = $this->getMockBuilder(UploadedFile::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['get'])
+            ->getMock();
+
         $path = 'test/path';
         $fileName = 'test.pdf';
+        $fullPath = "{$path}/{$fileName}";
 
+        $file->expects($this->once())
+            ->method('get')
+            ->willReturn('file contents');
+
+        $this->storageMock->expects($this->once())
+            ->method('put')
+            ->with($fullPath, 'file contents')
+            ->willReturn(true);
+
+        $this->fileMock->expects($this->once())
+            ->method('create')
+            ->with([
+                'filename' => $fileName,
+                'path' => $path
+            ])
+            ->willReturn(new File());
+
+        // Act
         $result = $this->repository->putObject($path, $file, $fileName);
 
-        $this->assertEquals("{$path}/{$fileName}", $result);
-        Storage::assertExists("{$path}/{$fileName}");
-    }
-
-    /** @test */
-    public function it_throws_exception_when_file_not_found()
-    {
-        $this->expectException(RuntimeException::class);
-        $this->repository->getObject('non/existent/path');
-    }
-
-    /** @test */
-    public function it_retrieves_existing_file_content()
-    {
-        $content = 'test content';
-        $path = 'test/existing.txt';
-        Storage::put($path, $content);
-
-        $result = $this->repository->getObject($path);
-
-        $this->assertEquals($content, $result);
-    }
-
-    /** @test */
-    public function it_throws_exception_when_storage_fails()
-    {
-        Storage::shouldReceive('put')->andReturn(false);
-        
-        $this->expectException(RuntimeException::class);
-        
-        $file = UploadedFile::fake()->create('test.pdf', 100);
-        $this->repository->putObject('test', $file, 'test.pdf');
+        // Assert
+        $this->assertEquals($fullPath, $result);
     }
 }

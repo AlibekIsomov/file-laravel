@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Feature;
 
 use App\Services\FileService;
 use App\Repositories\FileRepositoryInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
+use PHPUnit\Framework\TestCase;
 
 class FileServiceTest extends TestCase
 {

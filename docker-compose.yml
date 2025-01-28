@@ -19,7 +19,7 @@ services:
       - app
 
   db:
-    image: postgres:10
+    image: postgres:13
     ports:
       - "5432:5432"
     environment:
