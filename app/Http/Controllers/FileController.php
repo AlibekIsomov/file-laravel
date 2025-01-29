@@ -6,6 +6,7 @@ use App\Services\FileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Models\FileContainer;
 
 class FileController extends Controller
 {
@@ -28,7 +29,9 @@ class FileController extends Controller
             $validator = Validator::make($request->all(), [
                 'path' => 'required|string',
                 'file' => 'required|file|mimes:pdf|max:1024',
-                'fileName' => 'required|string|regex:/^[a-zA-Z0-9]+$/'
+                'fileName' => 'required|string|regex:/^[a-zA-Z0-9]+$/',
+                'object_type_id' => 'required|exists:object_types,id',
+                'object_id' => 'required|integer'
             ]);
 
             if ($validator->fails()) {
@@ -50,6 +53,12 @@ class FileController extends Controller
                 $request->file('file'),
                 $validated['fileName']
             );
+
+            FileContainer::create([
+                'upload_path' => $file,
+                'object_type_id' => $validated['object_type_id'],
+                'object_id' => $validated['object_id']
+            ]);
 
             Log::info('File uploaded successfully', ['path' => $file]);
             return response()->json(['path' => $file], 201);
