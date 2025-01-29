@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Repositories\FileRepository;
 use App\Repositories\FileRepositoryInterface;
+use App\Repositories\FileRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,3 +28,4 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 }
+
